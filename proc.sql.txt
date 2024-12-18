@@ -1,0 +1,186 @@
+create or replace procedure CreateNewUser(A_id in int, name in varchar2, password in varchar2, phone in int, username in varchar2 default null, age in int default null, Door in number default null, street in varchar2 default null, city in varchar2 default null,state in varchar2 default null, pin in int default null) as
+begin
+insert into users values(A_id, name, age, username, password , Door, street, city,state, pin);
+insert into contact values(A_id, phone);
+dbms_output.put_line('User created');
+end;
+/
+set server output on;
+
+exec CreateNewUser(0000229,'rocky','cool@123',982749274928,'COOLGUY',50,111,'path','chennai','tamilnadu',782020);
+
+create or replace procedure InsertUserPhone(A_id in int, phone in int) as
+begin
+insert into contact values(A_id, phone);
+dbms_output.put_line('Phone number added');
+end;
+/
+
+create or replace procedure InsertPropertyRecord(P_id in int, ownerId in int, Total_area in int, Plinth_area in int, address in varchar2, locality in varchar2,Rentpmonth in int, yrOfConst in int, AvailableFrom in varchar2 default null, AvailableTill in varchar2 default null, noOfBedrooms in int default null, annualhike in number default 0,floors in int default null,tenantId in int default null) as
+begin
+insert into property values(P_id, ownerId,tenantId,yrOfConst,Total_area ,Plinth_area ,AvailableFrom ,AvailableTill ,Rentpmonth,floors ,annualhike ,locality ,address ,noOfBedrooms);
+dbms_output.put_line(' Property added');
+end;
+/
+
+exec InsertPropertyRecord(10,0000201,2000,2200,'PAnaji','goa',39000,2002,Null,Null,Null ,0 ,2, 0000101);
+
+
+create or replace procedure GetPropertyRecords(ownerid in int) as
+p number;
+P_id int;
+Total_area int;
+Plinth_area int;
+AvailableFrom varchar(20);
+AvailableTill varchar2(20);
+address varchar2(20);
+locality varchar2(20);
+yrOfConst int;
+annualhike number;
+cursor props is
+select P_id, Total_area, Plinth_area, AvailableFrom, AvailableTill, address, locality,  yrOfConst, annualhike from property where ownerId = ownerid;
+begin
+p := 0;
+open props;
+dbms_output.put_line('::::Owner with id: '||ownerid||' has the following properties::::');
+loop
+fetch props into P_id, Total_area, Plinth_area, AvailableFrom, AvailableTill, address, locality,yrOfConst, annualhike;
+exit when props%notfound;
+p := p + 1;
+dbms_output.put_line(' Property '||p);
+dbms_output.put_line(' Property Id: '||P_id);
+dbms_output.put_line(' Total Area: '||Total_area);
+dbms_output.put_line(' Plinth Area: '||Plinth_area);
+dbms_output.put_line(' Available from: '||AvailableFrom);
+dbms_output.put_line(' Address: '||address);
+dbms_output.put_line(' Locality: '||locality);
+dbms_output.put_line(' Construction Year: '||yrOfConst);
+dbms_output.put_line(' Annual Hike: '||annualhike);
+if AvailableTill is NULL then
+	dbms_output.put_line(' Property available indefinitely');
+else
+	dbms_output.put_line(' Property available till: '||AvailableTill);
+end if;
+dbms_output.put_line('-');
+end loop;
+close props;
+if p = 0 then
+	dbms_output.put_line(' No properties registered yet');
+end if;
+dbms_output.put_line(' Above information is subject to change');
+end;
+/
+
+declare
+  2  ownerid int;
+  3  begin
+  4  ownerid :=0000001;
+  5  GetPropertyRecords(ownerid);
+  6  end;
+  7  /
+
+
+create or replace procedure GetTenantDetails(P_id in int) as
+p number;
+ph number;
+id number;
+nm varchar2(20);
+sdate date;
+rpm number;
+yhike number;
+comm number;
+cursor tens is
+select tid, name, phone, start_date, rentpm, yearly_hike, commission from (rent join users on tid = aid) join user_phone on userid = tid where pid = propid and end_date is NULL;
+begin
+p := 0;
+open tens;
+loop
+fetch tens into id, nm, ph, sdate, rpm, yhike, comm;
+exit when tens%notfound;
+	p := p + 1;
+	if p = 1 then
+		dbms_output.put_line(' Occupying Tenant id: '||id);
+		dbms_output.put_line(' Tenant Name: '||nm);
+		dbms_output.put_line(' Started on: '||sdate);
+		dbms_output.put_line(' Current Rent per Month: '||rpm);
+		dbms_output.put_line(' Yearly Rate Hike: '||yhike);
+		if comm is NULL then
+			dbms_output.put_line(' No commission involved');
+		else
+			dbms_output.put_line(' Commission: '||comm);
+		end if;
+		dbms_output.put_line(' Phone number: '||ph);
+	else
+		dbms_output.put_line(' Phone number: '||ph);
+	end if;
+end loop;
+close tens;
+if p = 0 then
+	dbms_output.put_line(' Either this property does not exists or it currently has no tenants');
+end if;
+end;
+/
+
+create or replace procedure GetRentHistory(P_id in int) as
+p number;
+id number;
+sdate date;
+edate date;
+trent number;
+cursor tens is
+select tid, start_date, end_date, total_rent from rent_history natural join rent where pid = propid;
+begin
+p := 0;
+open tens;
+dbms_output.put_line('::::Property with id: '||P_id||' has had the following tenants::::');
+loop 
+fetch tens into id, sdate, edate, trent;
+exit when tens%notfound;
+p := p + 1;
+dbms_output.put_line(' Tenant '||p);
+dbms_output.put_line(' Tenant id: '||T_id);
+dbms_output.put_line(' Occupied the Property from: '||sdate);
+if edate is NULL then
+	dbms_output.put_line(' till today, and onwards');
+else
+	dbms_output.put_line(' Till: '||edate);
+	dbms_output.put_line(' Net Rent amount: '||trent);
+end if;
+dbms_output.put_line('-');
+end loop;
+if p = 0 then
+	dbms_output.put_line(' Either this property does not exist or no tenants have finished their tenure on it yet');
+end if;
+close tens;
+end;
+/
+
+
+create or replace procedure SearchPropertyForRent(locality in varchar2) as
+p number;
+P_id number;
+cursor props is
+select pid from property where locality = loc;
+begin
+p := 0;
+dbms_output.put_line('::::Locality/Street: '||loc||' has the following properties::::');
+open props;
+loop
+fetch props into id;
+exit when props%notfound;
+p := p + 1;
+dbms_output.put_line(' Property '||p);
+GetPropertyRecordwithPID(id);
+dbms_output.put_line('-');
+end loop;
+close props;
+if p = 0 then
+	dbms_output.put_line('No properties found');
+end if;
+end;
+/
+
+
+
+
+
